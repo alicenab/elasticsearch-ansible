@@ -1,2 +1,2 @@
-# elasticsearch-ansible
-Ansible playbook to deploy ELK cluster
+Edit the inventory.ini file and run ansible playbook with this command:
+ansible-playbook -i inventory.ini tasks/main.yml --become-user root --become-method sudo --ask-become-pass

@@ -1,0 +1,43 @@
+---
+- hosts: kibana_hosts
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install 8.12 version of Kibana
+      apt:
+        name: kibana=8.12.0
+        state: present
+        update_cache: yes
+
+    - name: Reload systemd after changing unit files
+      systemd:
+        daemon_reload: yes
+      become: yes
+
+    - name: Enable Elasticsearch service
+      systemd:
+        name: kibana
+        enabled: yes
+      become: yes
+
+
+
+- name: Configure Kibana
+  hosts: kibana_hosts
+  become: true
+  vars:
+    kibana_config_template: "../templates/kibana.yml.j2"
+
+  tasks:
+    - name: Generate Kibana configuration file
+      template:
+        src: "{{ kibana_config_template }}"
+        dest: "/etc/kibana/kibana.yml"
+      notify: Restart Kibana
+
+  handlers:
+    - name: Restart Kibana
+      systemd:
+        name: kibana
+        state: restarted
+

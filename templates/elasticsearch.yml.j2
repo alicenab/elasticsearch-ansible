@@ -1,0 +1,16 @@
+cluster.name: "cti-elk"
+network.host: "{{ inventory_hostname }}"
+http.host: "{{ inventory_hostname }}"
+node.name: "{{ inventory_hostname }}"
+node.roles: {% if 'elastic_hotnodes' in group_names %}["data_warm", "data_hot", "data_content"]{% elif 'elastic_coldnodes' in group_names %}["data_cold", "data_frozen"]{% elif 'elastic_misc' in group_names %}["ingest", "ml", "remote_cluster_client", "transform"]{% else %}["master"]{% endif %}
+
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+discovery.seed_hosts: {{ seed_hosts | to_json }}
+cluster.initial_master_nodes: {{ initial_master_nodes | to_json }}
+transport.port: 9300
+
+xpack.security.enabled: false
+xpack.security.transport.ssl.enabled: false
+xpack.security.http.ssl.enabled: false
+

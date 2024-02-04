@@ -1,0 +1,16 @@
+server.name: "{{ inventory_hostname }}"
+server.host: "{{ inventory_hostname }}"
+server.publicBaseUrl: "http://{{ inventory_hostname }}"
+
+monitoring.ui.ccs.enabled: false
+
+elasticsearch.hosts: [
+  {% for host in groups['elastic_master'] %}
+    "http://{{ hostvars[host]['ansible_host'] }}:9200"{% if not loop.last %},{% endif %}
+  {% endfor %}
+]
+
+monitoring.ui.container.elasticsearch.enabled: true
+xpack.security.enabled: false
+server.ssl.enabled: false
+

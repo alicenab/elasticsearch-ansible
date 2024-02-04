@@ -1,0 +1,32 @@
+---
+- hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Import the Elasticsearch PGP key
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        keyring: /usr/share/keyrings/elasticsearch-keyring.gpg
+        state: present
+
+    - name: Install apt-transport-https
+      apt:
+        name:
+          - apt-transport-https
+          - gnupg2
+          - unzip
+        state: present
+
+    - name: Apply the new hostname with systemctl
+      command: hostnamectl set-hostname "{{ inventory_hostname }}"
+
+    - name: Template /etc/hosts file
+      template:
+        src: ../templates/hosts_template.j2
+        dest: /etc/hosts
+      become: yes
+  # Add elasticsearch repo into sources list file /etc/apt/sources.list.d/elastic-8.x.list, after adding it will also run apt update or apt-get update by default
+    - apt_repository:
+        repo: 'deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main'
+        state: present
+        filename: elastic-8.x.list

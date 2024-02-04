@@ -1,0 +1,31 @@
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html
+---
+- hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Create override.conf file
+      file:
+        path: /etc/systemd/system/elasticsearch.service.d/override.conf
+        state: touch
+      become_method: sudo
+
+    - name: Insert content into override.conf
+      blockinfile:
+        path: /etc/systemd/system/elasticsearch.service.d/override.conf
+        block: |
+          [Service]
+          LimitMEMLOCK=infinity
+      become_method: sudo
+
+    - name: Reload systemd daemon
+      command: "systemctl daemon-reload"
+      become_method: sudo
+
+    - name: Disable swap by commenting out lines in /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '^.*\sswap\s.*$'
+        line: '# \g<0>'
+      become_method: sudo
+#

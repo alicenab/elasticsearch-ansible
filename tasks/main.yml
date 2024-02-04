@@ -1,0 +1,9 @@
+# tasks/main.yml
+# install-elasticsearch.yml  install-kibana.yml  main.yml  post-install.yml  pre-install.yml
+- import_playbook: pre-install.yml
+
+- import_playbook: install-elasticsearch.yml
+
+- import_playbook: install-kibana.yml
+
+  #- import_playbook: post-install.yml
