@@ -33,11 +33,11 @@
       template:
         src: "{{ kibana_config_template }}"
         dest: "/etc/kibana/kibana.yml"
-      notify: Restart Kibana
+#      notify: Restart Kibana
 
-  handlers:
-    - name: Restart Kibana
-      systemd:
-        name: kibana
-        state: restarted
+#  handlers:
+#    - name: Restart Kibana
+#      systemd:
+#        name: kibana
+#        state: restarted
 

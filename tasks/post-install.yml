@@ -1,31 +1,104 @@
-# https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html
 ---
-- hosts: all
-  become: true
-  gather_facts: true
+- name: Copy SSL Certificates to Remote Hosts
+  hosts: elastic_cluster
+  gather_facts: false
+  become: true  # To escalate privileges, if needed
+
   tasks:
-    - name: Create override.conf file
-      file:
-        path: /etc/systemd/system/elasticsearch.service.d/override.conf
-        state: touch
-      become_method: sudo
+    - name: Copy privkey.pem
+      copy:
+        src: ../certs/privkey.pem  # Specify the source path on your local machine
+        dest: /etc/elasticsearch/certs/privkey.pem  # Specify the destination path on the remote hosts
+        mode: '0660'  # Adjust permissions as needed
 
-    - name: Insert content into override.conf
-      blockinfile:
-        path: /etc/systemd/system/elasticsearch.service.d/override.conf
-        block: |
-          [Service]
-          LimitMEMLOCK=infinity
-      become_method: sudo
+    - name: Copy fullchain.pem
+      copy:
+        src: ../certs/fullchain.pem  # Specify the source path on your local machine
+        dest: /etc/elasticsearch/certs/fullchain.pem  # Specify the destination path on the remote hosts
+        mode: '0664'  # Adjust permissions as needed
 
-    - name: Reload systemd daemon
-      command: "systemctl daemon-reload"
-      become_method: sudo
+    - name: Change ownership of privkey.pem
+      ansible.builtin.file:
+        path: /etc/elasticsearch/certs/privkey.pem
+        owner: root
+        group: elasticsearch
 
-    - name: Disable swap by commenting out lines in /etc/fstab
-      lineinfile:
-        path: /etc/fstab
-        regexp: '^.*\sswap\s.*$'
-        line: '# \g<0>'
-      become_method: sudo
-#
+    - name: Change ownership of fullchain.pem
+      ansible.builtin.file:
+        path: /etc/elasticsearch/certs/fullchain.pem
+        owner: root
+        group: elasticsearch
+
+- name: Copy SSL Certificates to Remote Hosts
+  hosts: kibana_hosts
+  gather_facts: false
+  become: true  # To escalate privileges, if needed
+
+  tasks:
+    - name: Create /etc/kibana/certs directory
+      ansible.builtin.file:
+        path: /etc/kibana/certs
+        state: directory
+        mode: '0755'
+        owner: root
+        group: kibana
+    - name: Copy privkey.pem
+      copy:
+        src: ../certs/privkey.pem  # Specify the source path on your local machine
+        dest: /etc/kibana/certs/privkey.pem  # Specify the destination path on the remote hosts
+        mode: '0660'  # Adjust permissions as needed
+
+    - name: Copy fullchain.pem
+      copy:
+        src: ../certs/fullchain.pem  # Specify the source path on your local machine
+        dest: /etc/kibana/certs/fullchain.pem  # Specify the destination path on the remote hosts
+        mode: '0664'  # Adjust permissions as needed
+
+    - name: Change ownership of privkey.pem
+      ansible.builtin.file:
+        path: /etc/kibana/certs/privkey.pem
+        owner: root
+        group: kibana
+
+    - name: Change ownership of fullchain.pem
+      ansible.builtin.file:
+        path: /etc/kibana/certs/fullchain.pem
+        owner: root
+        group: kibana
+
+- name: Execute Elasticsearch Password Reset Script
+  hosts: master1.kiber.info
+  become: true
+
+  tasks:
+    - name: Execute password reset script for elastic user
+      ansible.builtin.shell:
+        cmd: "/usr/bin/printf 'elastic\nelastic\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i -b -s --url https://master1.kiber.info:9200"
+    - name: Execute password reset script for kibana_system user
+      ansible.builtin.shell:
+        cmd: "/usr/bin/printf 'elastic\nelastic\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system -i -b -s --url https://master1.kiber.info:9200"
+
+
+- name: Enable and Start Elasticsearch service
+  hosts: elastic_cluster  # Assuming you want to perform this on Elasticsearch master node(s)
+  become: true
+
+  tasks:
+    - name: Enable and start Elasticsearch service
+      ansible.builtin.systemd:
+        name: elasticsearch
+        state: started
+        enabled: yes
+
+
+- name: Enable and Start Kibana service
+  hosts: kibana_hosts  # Assuming you want to perform this on Elasticsearch master node(s)
+  become: true
+
+  tasks:
+    - name: Enable and start Kibana service
+      ansible.builtin.systemd:
+        name: kibana
+        state: started
+        enabled: yes
+

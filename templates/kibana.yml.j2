@@ -2,15 +2,21 @@ server.name: "{{ inventory_hostname }}"
 server.host: "{{ inventory_hostname }}"
 server.publicBaseUrl: "http://{{ inventory_hostname }}"
 
-monitoring.ui.ccs.enabled: false
-
 elasticsearch.hosts: [
   {% for host in groups['elastic_master'] %}
-    "http://{{ hostvars[host]['ansible_host'] }}:9200"{% if not loop.last %},{% endif %}
+    "https://{{ hostvars[host]['inventory_hostname'] }}:9200"{% if not loop.last %},{% endif %}
   {% endfor %}
 ]
 
+monitoring.ui.enabled: true
+monitoring.ui.ccs.enabled: true
 monitoring.ui.container.elasticsearch.enabled: true
-xpack.security.enabled: false
-server.ssl.enabled: false
+
+xpack.security.enabled: true
+elasticsearch.ssl.verificationMode: certificate
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "elastic"
+server.ssl.enabled: true
+server.ssl.certificate: /etc/kibana/certs/fullchain.pem
+server.ssl.key: /etc/kibana/certs/privkey.pem
 

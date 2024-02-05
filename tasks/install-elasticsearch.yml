@@ -20,19 +20,6 @@
         enabled: yes
       become: yes
 
-#    - name: Start Elasticsearch service
-#      systemd:
-#        name: elasticsearch
-#        state: started
-#      become: yes
-
-    - name: Remove Elasticsearch certificate files
-      become: yes
-      file:
-        path: /etc/elasticsearch/certs
-        state: absent
-        force: yes
-
 - name: Configure Elasticsearch
   hosts: elastic_master:elastic_hotnodes:elastic_coldnodes:elastic_misc
   become: yes
@@ -57,38 +44,35 @@
         seed_hosts: "{{ groups['elastic_master'] | map('extract', hostvars, 'inventory_hostname') | list }}"
         initial_master_nodes: "{{ groups['elastic_master'] | map('extract', hostvars, 'inventory_hostname') | list }}"
 
-#        seed_hosts: ["master1.elk.cti.local", "master2.elk.cti.local", "master3.elk.cti.local"]
-#        initial_master_nodes: ["master1.elk.cti.local", "master2.elk.cti.local"]
 
-- name: Restart Elasticsearch service on elastic_master nodes
-  hosts: elastic_master
-  become: yes
-  gather_facts: false
-  become_user: root
-  tasks:
-    - name: Restart Elasticsearch service
-      systemd:
-        name: elasticsearch
-        state: restarted
-    - name: Enable Elasticsearch service
-      systemd:
-        name: elasticsearch
-        enabled: yes
-      become: yes
+#- name: Restart Elasticsearch service on elastic_master nodes
+#  hosts: elastic_master
+#  become: yes
+#  gather_facts: false
+#  become_user: root
+#  tasks:
+#    - name: Restart Elasticsearch service
+#      systemd:
+#        name: elasticsearch
+#        state: restarted
+#    - name: Enable Elasticsearch service
+#      systemd:
+#        name: elasticsearch
+#        enabled: yes
+#      become: yes
 
-- name: Restart Elasticsearch service on elastic_master nodes
-  hosts: elastic_hotnodes:elastic_coldnodes:elastic_misc
-  become: yes
-  gather_facts: false
-  become_user: root
-  tasks:
-    - name: Restart Elasticsearch service
-      systemd:
-        name: elasticsearch
-        state: restarted
-    - name: Enable Elasticsearch service
-      systemd:
-        name: elasticsearch
-        enabled: yes
-      become: yes
-
+#- name: Restart Elasticsearch service on elastic_master nodes
+#  hosts: elastic_hotnodes:elastic_coldnodes:elastic_misc
+#  become: yes
+#  gather_facts: false
+#  become_user: root
+#  tasks:
+#    - name: Restart Elasticsearch service
+#      systemd:
+#        name: elasticsearch
+#        state: restarted
+#    - name: Enable Elasticsearch service
+#      systemd:
+#        name: elasticsearch
+#        enabled: yes
+#      become: yes

@@ -6,4 +6,4 @@
 
 - import_playbook: install-kibana.yml
 
-  #- import_playbook: post-install.yml
+- import_playbook: post-install.yml
