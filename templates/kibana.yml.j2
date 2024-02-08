@@ -1,6 +1,7 @@
 server.name: "{{ inventory_hostname }}"
 server.host: "{{ inventory_hostname }}"
-server.publicBaseUrl: "http://{{ inventory_hostname }}"
+
+server.publicBaseUrl: "https://{{ inventory_hostname }}"
 
 elasticsearch.hosts: [
   {% for host in groups['elastic_master'] %}
@@ -8,15 +9,53 @@ elasticsearch.hosts: [
   {% endfor %}
 ]
 
+elasticsearch.username: "kibana_system"
+elasticsearch.password: "{{ kibana_system_password }}"
+
+# Monitoring settings:
+xpack.monitoring.collection.enabled: true
 monitoring.ui.enabled: true
-monitoring.ui.ccs.enabled: true
+# If monitoring.ui.ccs.enabled: true, it causes permission errors.
+monitoring.ui.ccs.enabled: false
 monitoring.ui.container.elasticsearch.enabled: true
 
+# xpack and SSL/TLS settings:
 xpack.security.enabled: true
-elasticsearch.ssl.verificationMode: certificate
-elasticsearch.username: "kibana_system"
-elasticsearch.password: "elastic"
 server.ssl.enabled: true
+elasticsearch.ssl.verificationMode: certificate
 server.ssl.certificate: /etc/kibana/certs/fullchain.pem
 server.ssl.key: /etc/kibana/certs/privkey.pem
+xpack.encryptedSavedObjects:
+  encryptionKey: "min-32-byte-long-strong-encryption-key"
+
+# Fleet settings:
+# https://www.elastic.co/guide/en/fleet/8.12/create-a-policy-no-ui.html#use-preconfiguration-to-create-policy
+xpack.fleet:
+  agents:
+    enabled: true
+    fleet_server:
+      hosts: [
+  {% for host in groups['kibana_hosts'] %}
+    "https://{{ hostvars[host]['inventory_hostname'] }}:8220"{% if not loop.last %},{% endif %}
+  {% endfor %}
+	]
+    elasticsearch:
+      hosts: [
+  {% for host in groups['elastic_master'] %}
+    "https://{{ hostvars[host]['inventory_hostname'] }}:9200"{% if not loop.last %},{% endif %}
+  {% endfor %}	
+	]
+  packages:
+    - name: fleet_server
+      version: latest
+
+xpack.fleet.agentPolicies:
+  - name: Default fleet server policy
+    monitoring_enabled: ['logs', 'metrics']
+    id: fleet-server-policy
+    namespace: default
+    package_policies:
+      - name: fleet_server-1
+        package:
+          name: fleet_server
 

@@ -3,6 +3,7 @@
   become: true
   gather_facts: true
   tasks:
+
     - name: Import the Elasticsearch PGP key
       apt_key:
         url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
@@ -15,6 +16,7 @@
           - apt-transport-https
           - gnupg2
           - unzip
+          - chrony
         state: present
 
     - name: Apply the new hostname with systemctl
@@ -25,8 +27,58 @@
         src: ../templates/hosts_template.j2
         dest: /etc/hosts
       become: yes
-  # Add elasticsearch repo into sources list file /etc/apt/sources.list.d/elastic-8.x.list, after adding it will also run apt update or apt-get update by default
+
+        # Add elasticsearch repo into sources list file /etc/apt/sources.list.d/elastic-8.x.list, after adding it will also run apt update or apt-get update by default
     - apt_repository:
         repo: 'deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main'
         state: present
         filename: elastic-8.x.list
+
+    - name: Set timezone to Asia/Baku
+      timezone:
+        name: Asia/Baku
+
+    - name: Read chrony.conf file
+      ansible.builtin.shell: cat /etc/chrony/chrony.conf
+      register: chrony_conf_content
+
+    - name: Comment out lines starting with "pool"
+      ansible.builtin.replace:
+        path: /etc/chrony/chrony.conf
+        regexp: '^(pool.*)$'
+        replace: '# \1'
+        backup: yes
+      loop: "{{ chrony_conf_content.stdout_lines }}"
+      when: item.startswith('pool')
+
+    - name: Display updated chrony.conf file
+      ansible.builtin.shell: cat /etc/chrony/chrony.conf
+
+    - name: Echo NTP server configuration to sources file
+      shell: echo 'server {{ groups['ntp'][0] }} iburst' > /etc/chrony/sources.d/local-ntp-server.sources
+
+    - name: Reload Chrony sources
+      shell: chronyc reload sources
+
+    - name: chronyc -a makestep
+      shell: chronyc -a makestep
+
+    - name: Restart chrony service
+      ansible.builtin.service:
+        name: chrony
+        state: restarted
+
+    - name: Restart chronyd service
+      ansible.builtin.service:
+        name: chronyd
+        state: restarted
+
+    - name: Stop unattended-upgrades service
+      ansible.builtin.service:
+        name: unattended-upgrades
+        state: stopped
+
+    - name: Disable unattended-upgrades service
+      ansible.builtin.service:
+        name: unattended-upgrades
+        enabled: no

@@ -2,20 +2,20 @@
 - name: Copy SSL Certificates to Remote Hosts
   hosts: elastic_cluster
   gather_facts: false
-  become: true  # To escalate privileges, if needed
+  become: true  
 
   tasks:
     - name: Copy privkey.pem
       copy:
-        src: ../certs/privkey.pem  # Specify the source path on your local machine
-        dest: /etc/elasticsearch/certs/privkey.pem  # Specify the destination path on the remote hosts
-        mode: '0660'  # Adjust permissions as needed
+        src: ../certs/privkey.pem 
+        dest: /etc/elasticsearch/certs/privkey.pem  
+        mode: '0660' 
 
     - name: Copy fullchain.pem
       copy:
-        src: ../certs/fullchain.pem  # Specify the source path on your local machine
-        dest: /etc/elasticsearch/certs/fullchain.pem  # Specify the destination path on the remote hosts
-        mode: '0664'  # Adjust permissions as needed
+        src: ../certs/fullchain.pem 
+        dest: /etc/elasticsearch/certs/fullchain.pem 
+        mode: '0664' 
 
     - name: Change ownership of privkey.pem
       ansible.builtin.file:
@@ -32,7 +32,7 @@
 - name: Copy SSL Certificates to Remote Hosts
   hosts: kibana_hosts
   gather_facts: false
-  become: true  # To escalate privileges, if needed
+  become: true  
 
   tasks:
     - name: Create /etc/kibana/certs directory
@@ -44,15 +44,15 @@
         group: kibana
     - name: Copy privkey.pem
       copy:
-        src: ../certs/privkey.pem  # Specify the source path on your local machine
-        dest: /etc/kibana/certs/privkey.pem  # Specify the destination path on the remote hosts
-        mode: '0660'  # Adjust permissions as needed
+        src: ../certs/privkey.pem  
+        dest: /etc/kibana/certs/privkey.pem  
+        mode: '0660'  
 
     - name: Copy fullchain.pem
       copy:
-        src: ../certs/fullchain.pem  # Specify the source path on your local machine
-        dest: /etc/kibana/certs/fullchain.pem  # Specify the destination path on the remote hosts
-        mode: '0664'  # Adjust permissions as needed
+        src: ../certs/fullchain.pem  
+        dest: /etc/kibana/certs/fullchain.pem  
+        mode: '0664'  
 
     - name: Change ownership of privkey.pem
       ansible.builtin.file:
@@ -66,21 +66,8 @@
         owner: root
         group: kibana
 
-- name: Execute Elasticsearch Password Reset Script
-  hosts: master1.kiber.info
-  become: true
-
-  tasks:
-    - name: Execute password reset script for elastic user
-      ansible.builtin.shell:
-        cmd: "/usr/bin/printf 'elastic\nelastic\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i -b -s --url https://master1.kiber.info:9200"
-    - name: Execute password reset script for kibana_system user
-      ansible.builtin.shell:
-        cmd: "/usr/bin/printf 'elastic\nelastic\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system -i -b -s --url https://master1.kiber.info:9200"
-
-
 - name: Enable and Start Elasticsearch service
-  hosts: elastic_cluster  # Assuming you want to perform this on Elasticsearch master node(s)
+  hosts: elastic_cluster 
   become: true
 
   tasks:
@@ -90,9 +77,21 @@
         state: started
         enabled: yes
 
+- name: Execute Elasticsearch Password Reset Script
+  hosts: "{{ hostvars[groups['elastic_master'][0]].inventory_hostname }}"
+  become: true
+  vars_files:
+    - ../vault.yml
+  tasks:
+    - name: Execute password reset script for elastic user
+      ansible.builtin.shell:
+        cmd: "/usr/bin/printf '{{ elasticsearch_password }}\n{{ elasticsearch_password }}\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic -i -f -b -s --url https://{{ hostvars[groups['elastic_master'][0]].inventory_hostname }}:9200"
+    - name: Execute password reset script for kibana_system user
+      ansible.builtin.shell:
+        cmd: "/usr/bin/printf '{{ kibana_system_password }}\n{{ kibana_system_password }}\n' | /usr/share/elasticsearch/bin/elasticsearch-reset-password -u kibana_system -i -f -b -s --url https://{{ hostvars[groups['elastic_master'][0]].inventory_hostname }}:9200"
 
 - name: Enable and Start Kibana service
-  hosts: kibana_hosts  # Assuming you want to perform this on Elasticsearch master node(s)
+  hosts: kibana_hosts 
   become: true
 
   tasks:

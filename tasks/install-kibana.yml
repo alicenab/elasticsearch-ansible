@@ -14,30 +14,22 @@
         daemon_reload: yes
       become: yes
 
-    - name: Enable Elasticsearch service
+    - name: Enable Kibana service
       systemd:
         name: kibana
         enabled: yes
       become: yes
 
-
-
 - name: Configure Kibana
   hosts: kibana_hosts
   become: true
+  vars_files:
+    - ../vault.yml
   vars:
     kibana_config_template: "../templates/kibana.yml.j2"
-
   tasks:
     - name: Generate Kibana configuration file
       template:
         src: "{{ kibana_config_template }}"
         dest: "/etc/kibana/kibana.yml"
-#      notify: Restart Kibana
-
-#  handlers:
-#    - name: Restart Kibana
-#      systemd:
-#        name: kibana
-#        state: restarted
 

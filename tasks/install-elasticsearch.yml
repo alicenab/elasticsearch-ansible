@@ -3,7 +3,9 @@
   become: true
   gather_facts: false
   tasks:
-    - name: Install a 8.12 version of Elasticsearch
+    - name: Wait for /var/lib/dpkg/lock-frontend to be released 
+      shell: while lsof /var/lib/dpkg/lock-frontend ; do sleep 10; done;
+    - name: Install 8.12 version of Elasticsearch
       apt:
         name: elasticsearch=8.12.0
         state: present
@@ -44,35 +46,3 @@
         seed_hosts: "{{ groups['elastic_master'] | map('extract', hostvars, 'inventory_hostname') | list }}"
         initial_master_nodes: "{{ groups['elastic_master'] | map('extract', hostvars, 'inventory_hostname') | list }}"
 
-
-#- name: Restart Elasticsearch service on elastic_master nodes
-#  hosts: elastic_master
-#  become: yes
-#  gather_facts: false
-#  become_user: root
-#  tasks:
-#    - name: Restart Elasticsearch service
-#      systemd:
-#        name: elasticsearch
-#        state: restarted
-#    - name: Enable Elasticsearch service
-#      systemd:
-#        name: elasticsearch
-#        enabled: yes
-#      become: yes
-
-#- name: Restart Elasticsearch service on elastic_master nodes
-#  hosts: elastic_hotnodes:elastic_coldnodes:elastic_misc
-#  become: yes
-#  gather_facts: false
-#  become_user: root
-#  tasks:
-#    - name: Restart Elasticsearch service
-#      systemd:
-#        name: elasticsearch
-#        state: restarted
-#    - name: Enable Elasticsearch service
-#      systemd:
-#        name: elasticsearch
-#        enabled: yes
-#      become: yes

@@ -1,0 +1,31 @@
+- name: Install and configure Elastic Agent
+  hosts: kibana_hosts
+  become: true
+  vars_files:
+    - ../vault.yml
+  gather_facts: no  # We don't need facts gathering for this playbook
+  tasks:
+    # https://www.elastic.co/guide/en/fleet-developer/current/fleet-security-model.html#fleet-security-account
+    - name: Execute curl command
+      # Service token would fail if it is same for two runs.
+      command: "curl -u {{ elasticsearch_password }}:{{ elasticsearch_password }} -XPOST https://{{ hostvars[groups['elastic_master'][0]].inventory_hostname }}:9200/_security/service/elastic/fleet-server/credential/token/{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+      register: api_key_response
+
+    - name: Extract api_key from curl response
+      set_fact:
+        api_key: "{{ api_key_response.stdout| from_json | json_query('token.value') }}"
+      
+    - name: Display extracted api_key
+      debug:
+        var: api_key
+# SuperSifre123!
+    - name: Download Elastic Agent
+      get_url:
+        url: "https://artifacts.elastic.co/downloads/beats/elastic-agent/elastic-agent-8.12.0-linux-x86_64.tar.gz"
+        dest: "/tmp/elastic-agent-8.12.0-linux-x86_64.tar.gz"
+    - name: Extract Elastic Agent
+      ansible.builtin.command: "tar xzf /tmp/elastic-agent-8.12.0-linux-x86_64.tar.gz -C /tmp/"
+
+    - name: Install Elastic Agent
+      ansible.builtin.command: "/tmp/elastic-agent-8.12.0-linux-x86_64/elastic-agent install --force --url=https://{{ hostvars[groups['kibana_hosts'][0]].inventory_hostname }}:8220 --fleet-server-es=https://{{ hostvars[groups['elastic_master'][0]].inventory_hostname }}:9200 --fleet-server-service-token={{ api_key }} --fleet-server-policy=fleet-server-policy --certificate-authorities=/etc/kibana/certs/fullchain.pem --fleet-server-es-ca=/etc/kibana/certs/fullchain.pem --fleet-server-cert=/etc/kibana/certs/fullchain.pem --fleet-server-cert-key=/etc/kibana/certs/privkey.pem --fleet-server-port=8220"
+
