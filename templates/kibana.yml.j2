@@ -6,7 +6,6 @@ server.publicBaseUrl: "https://{{ inventory_hostname }}"
 elasticsearch.hosts: [
   {% for host in groups['elastic_master'] %}
     "https://{{ hostvars[host]['inventory_hostname'] }}:9200"{% if not loop.last %},{% endif %}
-    "https://{{ hostvars[host]['inventory_hostname'] }}:9200"{% if not loop.last %},{% endif %}
   {% endfor %}
 ]
 
